@@ -1,0 +1,819 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "md-0",
+   "metadata": {},
+   "source": [
+    "# 2. A Short Tour of the Predictive Modeling Process\n",
+    "\n",
+    "---\n",
+    "🧠 *This is a learning version with code cells emptied. Read the instructions in each cell, then write the code yourself. Peek at the original notebook if you get stuck.*"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-1",
+   "metadata": {},
+   "source": [
+    "Introduce the broad concepts of modeling building, i.e. building candidate models and selecting the optimal model."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-2",
+   "metadata": {},
+   "source": [
+    "## 2.1 Case Study: Predicting Fuel Economy"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-3",
+   "metadata": {},
+   "source": [
+    "Check if data exists:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "code-4",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "total 280\n",
+      "-rw-r--r--  1 larrygrpolanco  staff  106388 Jun 17 10:40 cars2010.csv\n",
+      "-rw-r--r--  1 larrygrpolanco  staff   23219 Jun 17 10:40 cars2011.csv\n",
+      "-rw-r--r--  1 larrygrpolanco  staff    8969 Jun 17 10:40 cars2012.csv\n"
+     ]
+    }
+   ],
+   "source": [
+    "# 🧠 TIP: The '!' lets you run shell commands from a notebook.\n",
+    "# This lists files in the FuelEconomy dataset directory.\n",
+    "# Relative path '../datasets/FuelEconomy/' means: go up one folder from\n",
+    "# the 'notebooks/' directory, then into datasets/FuelEconomy/\n",
+    "\n",
+    "!ls -l ../datasets/FuelEconomy/\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-5",
+   "metadata": {},
+   "source": [
+    "In this study, we are only interested in data from 2010 and 2011. Use the DataFrame data type from **pandas** to store the files. It is very similar to the statistical package **R**'s data frame.\n",
+    "\n",
+    "🧠 **DataFrame 101:** A DataFrame is a table of data. **Rows** = observations (individual cars). **Columns** = features/predictors (attributes like engine size, cylinders, etc.). It's like a spreadsheet or SQL table."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-6",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: pandas is the go-to library for data manipulation in Python.\n",
+    "#   pd.read_csv() loads a CSV file into a DataFrame.\n",
+    "#   numpy (imported as np) adds math & array operations.\n",
+    "#\n",
+    "# 🔑 KEY VOCAB:\n",
+    "#   - X (features) = what you use TO make predictions\n",
+    "#   - y (target)   = what you WANT to predict\n",
+    "#   - training data = the data you show the model to learn from\n",
+    "#   - test data     = held-out data to evaluate the model honestly\n",
+    "#\n",
+    "# TODO: import numpy (as np), import pandas (as pd)\n",
+    "# TODO: read '../datasets/FuelEconomy/cars2010.csv' into a variable called 'cars10'\n",
+    "# TODO: read '../datasets/FuelEconomy/cars2011.csv' into a variable called 'cars11'\n",
+    "\n",
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "\n",
+    "cars10 = pd.read_csv(\"../datasets/FuelEconomy/cars2010.csv\")\n",
+    "cars11 = pd.read_csv(\"../datasets/FuelEconomy/cars2011.csv\")\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-7",
+   "metadata": {},
+   "source": [
+    "Let's look at the first few rows to understand the structure."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-8",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: .head(n) shows the first n rows. Great for a quick sanity check.\n",
+    "#   .head()  → first 5 rows (default)\n",
+    "#   .head(10) → first 10 rows\n",
+    "#\n",
+    "# 🔑 Notice the columns: EngDispl (engine displacement), NumCyl (cylinders),\n",
+    "#   FE (fuel efficiency - our target!), Transmission, etc.\n",
+    "#   We have 15 columns total.\n",
+    "#\n",
+    "# TODO: call cars10.head(5) to preview the data\n",
+    "\n",
+    "cars10.head(5)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-9",
+   "metadata": {},
+   "source": [
+    "Check if there is any missing values 'NaN' in this dataset."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-10",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: .count() returns the number of NON-NULL values in each column.\n",
+    "#   If every column has the same count, there are no missing values.\n",
+    "#   Missing data is common in real-world datasets and needs handling.\n",
+    "#\n",
+    "# TODO: call cars10.count() to see non-null counts per column\n",
+    "\n",
+    "cars10.count()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-11",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: .shape returns a tuple: (number_of_rows, number_of_columns)\n",
+    "#   cars10.shape → (1107, 15) means 1107 cars, 15 attributes\n",
+    "#\n",
+    "# TODO: print the shape of cars10 and cars11\n",
+    "\n",
+    "print(cars10.shape)\n",
+    "print(cars11.shape)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-12",
+   "metadata": {},
+   "source": [
+    "We only restrict ourselves to a single predictor 'EngDispl' and the response 'FE' in this introductory illustration."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-13",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: We split the data into:\n",
+    "#   - cars10_feature (X): the input/predictor (Engine Displacement)\n",
+    "#   - cars10_target  (y): the output/response (Fuel Efficiency)\n",
+    "#\n",
+    "# We use double brackets df[['col']] to keep it as a DataFrame (2D).\n",
+    "# Single brackets df['col'] would give a Series (1D) - sklearn prefers 2D.\n",
+    "#\n",
+    "# 🔑 Think of it like: given engine size (X), can we predict MPG (y)?\n",
+    "#\n",
+    "# TODO: Use .get() or .loc[] to select 'EngDispl' as the feature for 2010\n",
+    "# TODO: Select 'FE' as the target for 2010\n",
+    "# TODO: Do the same for 2011 data\n",
+    "\n",
+    "cars10_feature = cars10.get(['EngDispl'])\n",
+    "cars10_target = cars10.get(['FE'])\n",
+    "cars11_feature = cars11.get(['EngDispl'])\n",
+    "cars11_target = cars11.get(['FE'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-14",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: Verify the split worked correctly\n",
+    "# TODO: display the first 5 rows of cars10_feature\n",
+    "\n",
+    "cars10_feature.head(5)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-15",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# TODO: display the first 5 rows of cars10_target\n",
+    "\n",
+    "cars10_target.head(5)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-16",
+   "metadata": {},
+   "source": [
+    "Generally, we want to first visualize the datasets to get a better understanding before doing anything crazy. Since there is one predictor, a simple scatter plot would do the trick. The characteristics from the visualization may suggest important and necessary pre-processing steps.\n",
+    "\n",
+    "🧠 **EDA (Exploratory Data Analysis)**: Always look at your data before modeling! Plots reveal patterns, outliers, and relationships that numbers alone hide."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-17",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: matplotlib is the standard plotting library.\n",
+    "#   %matplotlib inline makes plots appear right in the notebook.\n",
+    "#   plt.rcParams sets global defaults for all plots.\n",
+    "#\n",
+    "# TODO: set up matplotlib inline, import pyplot as plt\n",
+    "# TODO: set figure size to (10, 7.5) and enable grid\n",
+    "\n",
+    "%matplotlib inline\n",
+    "import matplotlib.pyplot as plt\n",
+    "\n",
+    "plt.rcParams['figure.figsize'] = 10, 7.5\n",
+    "plt.rcParams['axes.grid'] = True\n",
+    "plt.gray()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-18",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: plt.subplots(1, 2) creates 1 row, 2 columns of plots side-by-side.\n",
+    "#   sharey=True makes them share the same y-axis scale for easy comparison.\n",
+    "#   'fig' is the whole figure, 'ax1'/'ax2' are the individual subplot areas.\n",
+    "#\n",
+    "# TODO: create a 1x2 grid of subplots with shared y-axis\n",
+    "# TODO: scatter plot of cars10_feature vs cars10_target on ax1\n",
+    "# TODO: scatter plot of cars11_feature vs cars11_target on ax2\n",
+    "# TODO: add titles, x-label, and y-label\n",
+    "\n",
+    "fig, (ax1, ax2) = plt.subplots(1, 2, sharey = True)\n",
+    "\n",
+    "ax1.scatter(cars10_feature, cars10_target)\n",
+    "ax1.set_title('2010 Model Year')\n",
+    "ax2.scatter(cars11_feature, cars11_target)\n",
+    "ax2.set_title('2011 Model Year')\n",
+    "\n",
+    "fig.text(0.5, 0.04, 'Engine Displacement', ha='center', va='center')\n",
+    "fig.text(0.06, 0.5, 'Fuel Efficiency (MPG)', ha='center', va='center', rotation='vertical')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-19",
+   "metadata": {},
+   "source": [
+    "Because of the nature of this problem, i.e. predict the MPG for a new car line, we take the 2010 data as *training set* and the 2011 data as *test set*.\n",
+    "\n",
+    "🧠 **Why separate train/test?** If we evaluate on the same data we trained on, the model looks better than it really is (overfitting). The test set simulates \"new, unseen data\" and gives an honest performance estimate."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-20",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: RMSE = Root Mean Squared Error\n",
+    "#   Formula: sqrt( mean( (actual - predicted)^2 ) )\n",
+    "#   It measures how far off our predictions are, on average.\n",
+    "#   Lower RMSE = better predictions.\n",
+    "#   Units: same as the target (MPG in this case).\n",
+    "#\n",
+    "#   sklearn.metrics.mean_squared_error() computes MSE for us.\n",
+    "#   We wrap it in np.sqrt() to get RMSE.\n",
+    "#\n",
+    "# TODO: import mean_squared_error from sklearn.metrics\n",
+    "# TODO: define a function rmse(y_actual, y_predicted)\n",
+    "\n",
+    "from sklearn.metrics import mean_squared_error\n",
+    "\n",
+    "def rmse(y_actual, y_predicted):\n",
+    "    return np.sqrt(mean_squared_error(y_actual, y_predicted))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-21",
+   "metadata": {},
+   "source": [
+    "A good starting point is the simple linear model \n",
+    "$$y = \\beta_0 + \\beta_1x,$$\n",
+    "where $y$ is the Fuel Efficiency (MPG) and $x$ is the Engine Displacement.\n",
+    "\n",
+    "🧠 **Linear Regression:** Finds the \"best fit\" straight line through the data.\n",
+    "  - $\\beta_0$ (intercept) = predicted MPG when engine displacement is 0\n",
+    "  - $\\beta_1$ (coefficient) = change in MPG for each 1L increase in displacement\n",
+    "  - \"Fitting\" = finding the values of $\\beta_0$ and $\\beta_1$ that minimize RMSE"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-22",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: sklearn uses a consistent API:\n",
+    "#   1. Create the model: model = LinearRegression()\n",
+    "#   2. Train (fit):      model.fit(X, y)\n",
+    "#   3. Predict:          model.predict(X_new)\n",
+    "#\n",
+    "#   model.intercept_ and model.coef_ store the learned parameters.\n",
+    "#\n",
+    "# TODO: import LinearRegression from sklearn.linear_model\n",
+    "# TODO: create a LinearRegression model, fit it on cars10_feature + cars10_target\n",
+    "# TODO: print intercept_ and coef_\n",
+    "\n",
+    "from sklearn.linear_model import LinearRegression\n",
+    "\n",
+    "reg = LinearRegression()\n",
+    "reg.fit(cars10_feature, cars10_target)\n",
+    "print(\"Least square estimate: intercept = {0}, coefficient ={1}\".format(reg.intercept_, reg.coef_[0]))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-23",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: Plot the fitted line over the data to see how well it matches.\n",
+    "#   np.linspace() creates evenly spaced values for a smooth line.\n",
+    "#   [:, np.newaxis] reshapes it from 1D to 2D column (sklearn expects 2D).\n",
+    "#   The red line shows the model's predictions across all engine sizes.\n",
+    "#   The right plot compares observed vs predicted - perfect predictions\n",
+    "#   would fall on the dashed diagonal line.\n",
+    "#\n",
+    "# TODO: generate a smooth range of X values for plotting the line\n",
+    "# TODO: call predict() on both the smooth range and training data\n",
+    "# TODO: create side-by-side plots: data+line, and observed vs predicted\n",
+    "\n",
+    "X = np.linspace(np.min(cars10_feature)[0], np.max(cars10_feature)[0])[:, np.newaxis]\n",
+    "y = reg.predict(X)\n",
+    "cars10_target_pred = reg.predict(cars10_feature)\n",
+    "y_range = np.linspace(np.min(cars10_target)[0], np.max(cars10_target)[0])[:, np.newaxis]\n",
+    "\n",
+    "fig, (ax1, ax2) = plt.subplots(1, 2)\n",
+    "\n",
+    "ax1.scatter(cars10_feature, cars10_target)\n",
+    "ax1.plot(X, y, 'r')\n",
+    "ax1.set_title('2010 Model Year')\n",
+    "ax1.set_xlabel('Engine Displacement')\n",
+    "ax1.set_ylabel('Fuel Efficiency (MPG)')\n",
+    "\n",
+    "ax2.scatter(cars10_target, cars10_target_pred)\n",
+    "ax2.plot(y_range, y_range, 'r--')\n",
+    "ax2.set_xlabel('Observed')\n",
+    "ax2.set_ylabel('Predicted')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-24",
+   "metadata": {},
+   "source": [
+    "The left-hand panel shows the training set data with a linear model fit defined by the estimated slope and intercept. The right-hand panel plots the observed and predicted MPG. These plots demonstrate that this model misses some of the patterns in the data, such as under-predicting fuel efficiency when the displacement is less than 2L or above 6L\n",
+    "\n",
+    "🧠 **What this tells us:** The relationship isn't perfectly straight. We need a more flexible model."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-25",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: cross_val_score performs K-fold cross-validation automatically.\n",
+    "#   cv=10 means: split data into 10 folds, train on 9, test on 1, repeat 10x.\n",
+    "#   This gives 10 different RMSE scores, then we average them.\n",
+    "#   It's more reliable than a single train/test split.\n",
+    "#\n",
+    "#   sklearn returns NEGATIVE MSE (because scoring='maximize' by convention),\n",
+    "#   so we take np.abs() before sqrt.\n",
+    "#\n",
+    "#   WARNING: This is a simplified use of cross_val_score - in practice you'd\n",
+    "#   not do CV on the test set. Here they use it on training set for estimation.\n",
+    "#\n",
+    "# TODO: import cross_val_score from sklearn.model_selection\n",
+    "# TODO: compute 10-fold cross-validated RMSE for the linear model\n",
+    "# TODO: print the average RMSE\n",
+    "\n",
+    "from sklearn.model_selection import cross_val_score\n",
+    "\n",
+    "scores = np.sqrt(np.abs(cross_val_score(reg, cars10_feature, cars10_target, cv=10, scoring='mean_squared_error')))\n",
+    "print(\"RMSE: {0}\".format(np.mean(scores)))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-26",
+   "metadata": {},
+   "source": [
+    "**Notice** that simply re-predicting the training set data is likely to result in overly optimistic estimation of RMSE. An alternative approach for quantifying how well the model operates is to use *resampling* techniques, e.g. 10-fold cross-validation. We will cover that in Chapter 4.\n",
+    "\n",
+    "🧠 **Overfitting:** A model that memorizes the training data but fails on new data. CV helps detect this."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-27",
+   "metadata": {},
+   "source": [
+    "Looking at the previous figure, it is conceivable that the problem might be solved by introducing some non-linearity in the model. The most basic approach is to supplement the simple linear model with additional complexity, e.g.\n",
+    "$$y = \\beta_0 + \\beta_1 x + \\beta_2 x^2,$$\n",
+    "which is referred to as *quadratic model*.\n",
+    "\n",
+    "🧠 **Why add x²?** The scatter plot looked curved. A straight line can't capture curves, but adding x² (a parabola) adds flexibility. More terms = more flexible = risk of overfitting."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-28",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: Pipeline chains multiple steps together.\n",
+    "#   make_pipeline(PolynomialFeatures(2), LinearRegression()) means:\n",
+    "#   1. First transform X to include x² (and x¹, x⁰ as intercept)\n",
+    "#   2. Then fit a linear regression on those transformed features\n",
+    "#\n",
+    "#   PolynomialFeatures(2) creates: [1, x, x²]\n",
+    "#   The linear regression then fits: y = b0 + b1*x + b2*x²\n",
+    "#\n",
+    "#   The pipeline can be used just like a regular model: .fit(), .predict()\n",
+    "#\n",
+    "# TODO: import PolynomialFeatures and make_pipeline\n",
+    "# TODO: create a pipeline with degree-2 polynomial + linear regression\n",
+    "# TODO: fit it and compute cross-validated RMSE\n",
+    "\n",
+    "from sklearn.preprocessing import PolynomialFeatures\n",
+    "from sklearn.pipeline import make_pipeline\n",
+    "\n",
+    "quad = make_pipeline(PolynomialFeatures(2), LinearRegression())\n",
+    "quad.fit(cars10_feature, cars10_target)\n",
+    "\n",
+    "scores = np.sqrt(np.abs(cross_val_score(quad, cars10_feature, cars10_target, cv=10, scoring='mean_squared_error')))\n",
+    "print(\"RMSE: {0}\".format(np.mean(scores)))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-29",
+   "metadata": {},
+   "source": [
+    "Reduction in RMSE suggests that this model is a better fit to the data."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-30",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: Same plotting pattern as before, but for the quadratic model.\n",
+    "#   Notice how the red line is now curved to follow the data better.\n",
+    "#\n",
+    "# TODO: plot the quadratic model's fit (data + curve + observed vs predicted)\n",
+    "\n",
+    "X = np.linspace(np.min(cars10_feature)[0], np.max(cars10_feature)[0])[:, np.newaxis]\n",
+    "y = quad.predict(X)\n",
+    "cars10_target_pred = quad.predict(cars10_feature)\n",
+    "y_range = np.linspace(np.min(cars10_target)[0], np.max(cars10_target)[0])[:, np.newaxis]\n",
+    "\n",
+    "fig, (ax1, ax2) = plt.subplots(1, 2)\n",
+    "\n",
+    "ax1.scatter(cars10_feature, cars10_target)\n",
+    "ax1.plot(X, y, 'r')\n",
+    "ax1.set_title('2010 Model Year')\n",
+    "ax1.set_xlabel('Engine Displacement')\n",
+    "ax1.set_ylabel('Fuel Efficiency (MPG)')\n",
+    "\n",
+    "ax2.scatter(cars10_target, cars10_target_pred)\n",
+    "ax2.plot(y_range, y_range, 'r--')\n",
+    "ax2.set_xlabel('Observed')\n",
+    "ax2.set_ylabel('Predicted')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-31",
+   "metadata": {},
+   "source": [
+    "One issue with quadratic models is that they can perform poorly on the extremes of the predictor. From the above figure, one might notice that predicting new vehicles with large displacement values may produce inaccurate results.\n",
+    "\n",
+    "🧠 **The parabola problem:** A quadratic curve always turns around. If the data only goes up to 8L but you predict for a 10L engine, the parabola might shoot up or down unrealistically."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-32",
+   "metadata": {},
+   "source": [
+    "There are other approaches for creating sophisticated relationships between the predictors and outcome. One particular technique is the multivariate adaptive regression spline (MARS) model (Friedman (1991)). When used with a single predictor, MARS can fit separate linear regression lines for different ranges of engine displacement. This model, like many machine learning algorithms, has a *tuning parameter* which cannot be directly estimated from the data. While the MARS model has internal algorithms for making this determination, the user can try different values and use resampling to determine the appropriate value. Once the value is found, a final MARS model would be fit using all the training set data and used for prediction.\n",
+    "\n",
+    "🧠 **MARS intuition:** Instead of one global curve, MARS fits several straight lines at different regions (e.g., one slope for small engines, another for large engines). The points where the slope changes are called \"knots.\"\n",
+    "\n",
+    "🧠 **Tuning parameters:** These are settings the model can't learn from data alone. You must choose them (by trying values and testing with CV). Examples: degree of polynomial, number of knots in MARS, depth of a decision tree."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-33",
+   "metadata": {},
+   "source": [
+    "A Python module *py-earth* on Github implemented the MARS and is likely to be merged into *sklearn* in the near future (see [this](https://github.com/scikit-learn/scikit-learn/issues/845) issue).\n",
+    "\n",
+    "🧠 **Note:** py-earth may not be installed. If you get an import error, you can skip this cell or install it with `pip install py-earth`. The important learning is the *concept* of MARS, not the specific library."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-34",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: MARS fits piecewise linear segments.\n",
+    "#   Earth() is the MARS implementation from py-earth.\n",
+    "#   Like sklearn models, it uses .fit() and .predict().\n",
+    "#   Its RMSE here is similar to the quadratic model.\n",
+    "#\n",
+    "# TODO: import Earth from pyearth\n",
+    "# TODO: create a MARS model, fit it, compute CV RMSE\n",
+    "\n",
+    "from pyearth import Earth\n",
+    "\n",
+    "mars = Earth()\n",
+    "mars.fit(cars10_feature, cars10_target)\n",
+    "scores = np.sqrt(np.abs(cross_val_score(mars, cars10_feature, cars10_target, cv=10, scoring='mean_squared_error')))\n",
+    "print(\"RMSE: {0}\".format(np.mean(scores)))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-35",
+   "metadata": {},
+   "source": [
+    "RMSE of MARS is similar to that of quadratic regression."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-36",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# TODO: plot the MARS model's fit (data + curve + observed vs predicted)\n",
+    "\n",
+    "X = np.linspace(np.min(cars10_feature)[0], np.max(cars10_feature)[0])[:, np.newaxis]\n",
+    "y = mars.predict(X)\n",
+    "cars10_target_pred = mars.predict(cars10_feature)\n",
+    "y_range = np.linspace(np.min(cars10_target)[0], np.max(cars10_target)[0])[:, np.newaxis]\n",
+    "\n",
+    "fig, (ax1, ax2) = plt.subplots(1, 2)\n",
+    "\n",
+    "ax1.scatter(cars10_feature, cars10_target)\n",
+    "ax1.plot(X, y, 'r')\n",
+    "ax1.set_title('2010 Model Year')\n",
+    "ax1.set_xlabel('Engine Displacement')\n",
+    "ax1.set_ylabel('Fuel Efficiency (MPG)')\n",
+    "\n",
+    "ax2.scatter(cars10_target, cars10_target_pred)\n",
+    "ax2.plot(y_range, y_range, 'r--')\n",
+    "ax2.set_xlabel('Observed')\n",
+    "ax2.set_ylabel('Predicted')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-37",
+   "metadata": {},
+   "source": [
+    "Both quadratic model and MARS are evaluated on the test set."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-38",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: This is the REAL test - evaluating on 2011 data (never seen during training).\n",
+    "#   Models were trained on 2010, now we test on 2011. This tells us how they\n",
+    "#   will perform on truly new cars.\n",
+    "#\n",
+    "# TODO: create side-by-side scatter plots showing both models on the 2011 test data\n",
+    "\n",
+    "X = np.linspace(np.min(cars11_feature)[0], np.max(cars11_feature)[0])[:, np.newaxis]\n",
+    "\n",
+    "fig, (ax1, ax2) = plt.subplots(1, 2)\n",
+    "\n",
+    "ax1.scatter(cars11_feature, cars11_target)\n",
+    "ax1.plot(X, quad.predict(X), 'r')\n",
+    "ax1.set_xlabel('Engine Displacement')\n",
+    "ax1.set_ylabel('Fuel Efficiency (MPG)')\n",
+    "ax1.set_title('Quadratic model')\n",
+    "\n",
+    "ax2.scatter(cars11_feature, cars11_target)\n",
+    "ax2.plot(X, mars.predict(X), 'r')\n",
+    "ax2.set_xlabel('Engine Displacement')\n",
+    "ax2.set_ylabel('Fuel Efficiency (MPG)')\n",
+    "ax2.set_title('MARS')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "code-39",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 🧠 TIP: Finally, we compute test-set RMSE for both models.\n",
+    "#   Compare these numbers to the training CV RMSE you saw earlier.\n",
+    "#   - If test RMSE is much higher than CV RMSE → possible overfitting\n",
+    "#   - If both models have similar RMSE → either is fine for this task\n",
+    "#\n",
+    "# TODO: compute 10-fold CV RMSE for both models on the 2011 (test) data\n",
+    "# TODO: print both scores\n",
+    "\n",
+    "quad_scores = np.sqrt(np.abs(cross_val_score(quad, cars11_feature, cars11_target, cv=10, scoring='mean_squared_error')))\n",
+    "mars_scores = np.sqrt(np.abs(cross_val_score(mars, cars11_feature, cars11_target, cv=10, scoring='mean_squared_error')))\n",
+    "\n",
+    "print(\"Quadratic model RMSE: {0} and MARS RMSE: {1}\".format(np.mean(quad_scores), np.mean(mars_scores)))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-40",
+   "metadata": {},
+   "source": [
+    "The first thing to notice is that both scores are very similar, which indicates that either model is appropriate for this task.\n",
+    "\n",
+    "🧠 **Key Insight:** Sometimes simple models (quadratic) perform just as well as complex ones (MARS). \"No Free Lunch\" - try multiple approaches!\n",
+    "\n",
+    "🧠 **The Full Pipeline Recap:**\n",
+    "  1. Load data (pandas) → understand structure (.head, .shape, .count)\n",
+    "  2. Visualize (matplotlib) → see patterns, detect issues\n",
+    "  3. Split into X (features) and y (target)\n",
+    "  4. Choose a model (LinearRegression, PolynomialFeatures, etc.)\n",
+    "  5. Train (.fit) the model on training data\n",
+    "  6. Evaluate (RMSE + cross-validation) on training data\n",
+    "  7. Pick the best model and test on held-out data\n",
+    "  \n",
+    "  This is the fundamental workflow of supervised machine learning!"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-41",
+   "metadata": {},
+   "source": [
+    "## 2.2 Themes\n",
+    "\n",
+    "There are several aspects of the model building process that are worth discussing further."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-42",
+   "metadata": {},
+   "source": [
+    "### Data Splitting\n",
+    "\n",
+    "- How we allocate data to certain tasks, e.g. model building, evaluating performance?\n",
+    "    - extrapolation: order matters\n",
+    "    - interpolation: a simple random sample of the data\n",
+    "- How much data should be allocated to the training and test sets?\n",
+    "    - small data sets: resampling techniques, i.e. no test set\n",
+    "    - large data sets\n",
+    "\n",
+    "🧠 **Why this matters:** If you optimize your model using test set feedback, you'll overfit to the test set too! The test set must be used ONLY ONCE at the very end."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-43",
+   "metadata": {},
+   "source": [
+    "### Predictor Data\n",
+    "\n",
+    "Feature selection: the process of determining the minimum set of relevant predictors needed by the model.\n",
+    "\n",
+    "🧠 **Curse of dimensionality:** More features ≠ better. Irrelevant features add noise. This is why feature selection matters."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-44",
+   "metadata": {},
+   "source": [
+    "### Estimating Performance\n",
+    "\n",
+    "- Quantitative assessments of statistics (using resampling techniques)\n",
+    "- Visualization\n",
+    "\n",
+    "🧠 **Always visualize!** A number alone (like RMSE) doesn't tell the full story. A plot can reveal systematic errors."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-45",
+   "metadata": {},
+   "source": [
+    "### Evaluating Several Models\n",
+    "\n",
+    "\"No Free Lunch\" Theorem - Try a wide variety of techniques then determine which model to focus on.\n",
+    "\n",
+    "🧠 **No single model is best for all problems.** Always try a few different approaches."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-46",
+   "metadata": {},
+   "source": [
+    "### Model Selection\n",
+    "\n",
+    "- between models\n",
+    "- within the same model\n",
+    "\n",
+    "Rely on cross-validation and the test set to produce quantitative assessments of the models to make the choice.\n",
+    "\n",
+    "🧠 **Two levels of selection:** (1) Which type of model? (linear vs quadratic vs MARS). (2) Within a model, what settings? (polynomial degree, MARS complexity). Both should be guided by CV + test set."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "md-47",
+   "metadata": {},
+   "source": [
+    "## 2.3 Summary\n",
+    "\n",
+    "To get a reliable, trustworthy model for predicting new samples, we must first understand the data and the objective of the modeling.\n",
+    "\n",
+    "---\n",
+    "🧠 **Final advice for learning:**\n",
+    "1. Run through this notebook cell by cell, writing every line yourself\n",
+    "2. Experiment! Change the polynomial degree. Add more features. Try different models.\n",
+    "3. Break things on purpose to understand error messages\n",
+    "4. The goal isn't to get the lowest RMSE - it's to understand the *process*"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.12.1"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
